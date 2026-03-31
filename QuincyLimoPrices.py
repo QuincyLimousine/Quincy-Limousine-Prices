@@ -4,6 +4,7 @@ import pandas as pd
 # 1. 網頁基本設定
 st.set_page_config(page_title="車輛資訊查詢系統", layout="centered")
 st.title("🚗 車輛型號與地區篩選器")
+st.write("目前表格的欄位名稱為：", df.columns.tolist())
 
 # 2. 你的 Google Sheets CSV 連結
 sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUroRgmX-R1wQx5ndR5B8plTm7uajQg4OdpdxV8UK21exlpKhmix-wjLKGgG2HrLqWLhHQpQn-Gmfv/pub?gid=0&single=true&output=csv"
@@ -51,3 +52,4 @@ except Exception as e:
     st.error("讀取雲端資料庫時發生錯誤。")
     st.write("錯誤訊息：", e)
     st.write("請確認您的 Google Sheet 第一列標題是否為：Model, Region, Result")
+
