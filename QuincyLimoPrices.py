@@ -36,8 +36,8 @@ df = load_data()
 if df.empty:
     st.error("無法載入資料庫，請檢查 Google Sheet 設定。")
 else:
-    # --- 第一步：預約時間與日期 ---
-    st.subheader("📅 第一步：預約時間與日期")
+    # --- 1. 預約時間與日期 ---
+    st.subheader("第一步：預約時間與日期")
     col_t1, col_t2 = st.columns(2)
     with col_t1:
         selected_date = st.date_input("預約上車日期 (Date):", value=date.today(), min_value=date.today())
@@ -55,7 +55,7 @@ else:
     st.divider()
 
     # --- 第二步：接送詳情 ---
-    st.subheader("🚘 第二步：接送詳情")
+    st.subheader("2. 接送詳情")
     col_s1, col_s2 = st.columns(2)
     with col_s1:
         transfer_types = ["請選擇"] + sorted(df['Transfer Type'].dropna().unique().tolist())
@@ -74,7 +74,7 @@ else:
     st.divider()
 
     # --- 第三步：附加選項 ---
-    st.subheader("👶 第三步：附加選項")
+    st.subheader("3. 附加選項")
     col_opt1, col_opt2 = st.columns(2)
     
     with col_opt1:
