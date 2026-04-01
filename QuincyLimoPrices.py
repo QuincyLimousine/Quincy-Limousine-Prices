@@ -3,9 +3,24 @@ import pandas as pd
 from dateutil import parser
 from datetime import date
 
-# 1. 網頁基本設定
+# 1. 網頁基本設定 (維持 centered 排版)
 st.set_page_config(page_title="Quincy Limo Prices", layout="centered")
-st.title("🚗 Quincy Limo 預約報價系統")
+
+# --- 【關鍵修改】使用 HTML 自訂標題與 Logo ---
+# 請將下方的連結替換為您公司的 Logo 圖片網址
+# 圖片建議為正方形或透明背景，效果最佳
+logo_url = "https://i.imgur.com/your_logo_here.png" # <--- 替換此處
+
+# 使用 HTML/CSS 讓 Logo 與文字並排，大小維持與 Emoji 類似
+st.markdown(
+    f"""
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="{logo_url}" style="height: 35px; margin-right: 15px;">
+        <h1 style="margin: 0; font-size: 2.2rem;">Quincy Limo 預約報價系統</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # 2. 資料來源
 sheet_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUroRgmX-R1wQx5ndR5B8plTm7uajQg4OdpdxV8UK21exlpKhmix-wjLKGgG2HrLqWLhHQpQn-Gmfv/pub?gid=0&single=true&output=csv"
