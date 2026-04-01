@@ -87,8 +87,8 @@ else:
         # 僅在 Airport Transfer(Arrival) 時顯示
         if selected_type == "Airport Transfer(Arrival)":
             # 將字樣放在勾選項上方
-            st.markdown("<small style='color: gray;'>Pickup Point: Arrival Hall A</small>", unsafe_allow_html=True)
-            is_meet_greet = st.checkbox("Meet And Greet Services ($80)")
+            st.markdown("Meet And Greet Services ($80)", unsafe_allow_html=True)
+            is_meet_greet = st.checkbox("Pickup Point: Arrival Hall A")
             if is_meet_greet:
                 meet_greet_fee = 80
         else:
