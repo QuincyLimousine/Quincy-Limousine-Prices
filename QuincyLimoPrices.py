@@ -7,10 +7,9 @@ from datetime import date
 st.set_page_config(page_title="Quincy Limo Prices", layout="centered")
 
 # --- 【GitHub Logo 設定】 ---
-# 請將下方連結替換為您從 GitHub 取得的 Raw 連結
 logo_url = "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/quincyLimo_Q.png"
 
-# 使用 HTML 讓 Logo 與標題並排，高度設定為 40px 以匹配標題大小
+# 使用 HTML 讓 Logo 與標題並排
 st.markdown(
     f"""
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
@@ -51,7 +50,6 @@ else:
     
     with col_t2:
         pickup_input = st.text_input("預約上車時間 (Pick-up Time):", placeholder="例如: 22:30")
-        
         night_fee = 0
         if pickup_input:
             try:
@@ -69,7 +67,6 @@ else:
     with col_s1:
         transfer_types = ["請選擇"] + sorted(df['Transfer Type'].dropna().unique().tolist())
         selected_type = st.selectbox("接送類型 (Transfer Type):", transfer_types)
-        
         regions = ["請選擇"] + sorted(df['Region'].dropna().unique().tolist())
         selected_region = st.selectbox("地區 (Region):", regions)
 
@@ -82,15 +79,30 @@ else:
             districts = ["請選擇"] + sorted(filtered_districts)
         else:
             districts = ["請先選擇地區"]
-        
         selected_district = st.selectbox("區域 (District):", districts)
 
     st.divider()
 
     # --- 第三步：附加選項 ---
     st.subheader("👶 第三步：附加選項")
-    seat_count = st.number_input("兒童安全座椅 ($120/張):", min_value=0, max_value=4, value=0)
-    seat_fee = seat_count * 120
+    col_a1, col_a2 = st.columns(2)
+    
+    with col_a1:
+        seat_count = st.number_input("兒童安全座椅 ($120/張):", min_value=0, max_value=4, value=0)
+        seat_fee = seat_count * 120
+
+    # 接機增值服務邏輯
+    meet_greet_fee = 0
+    with col_a2:
+        # 僅當選擇「機場接機」時顯示
+        if selected_type == "Airport Transfer(Arrival)":
+            is_meet_greet = st.checkbox("Meet And Greet Services ($80)")
+            st.caption("📍 Pickup Point: Arrival Hall A")
+            if is_meet_greet:
+                meet_greet_fee = 80
+        else:
+            # 佔位符保持排版整齊
+            st.write("")
 
     st.divider()
 
@@ -112,19 +124,21 @@ else:
             except:
                 base_price = 0
             
-            total_price = base_price + seat_fee + night_fee
+            # 加總所有費用
+            total_price = base_price + seat_fee + night_fee + meet_greet_fee
             
             st.subheader("📍 預約彙總與報價")
             
             summary_data = {
-                "項目 (Item)": ["日期", "時間", "行程", "安全座椅", "基本車資", "其他費用"],
+                "項目 (Item)": ["日期", "時間", "行程", "安全座椅", "接機服務", "基本車資", "其他費用總計"],
                 "內容 (Details)": [
                     selected_date.strftime("%Y-%m-%d"),
                     pickup_input if pickup_input else "未輸入",
                     f"{selected_type} ({selected_region}-{selected_district})",
                     f"{seat_count} 張",
+                    "Meet & Greet ($80)" if meet_greet_fee > 0 else "無",
                     f"${base_price}",
-                    f"${seat_fee + night_fee}"
+                    f"${seat_fee + night_fee + meet_greet_fee}"
                 ]
             }
             st.table(pd.DataFrame(summary_data))
