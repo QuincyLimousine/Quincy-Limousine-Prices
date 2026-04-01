@@ -8,7 +8,7 @@ st.set_page_config(page_title="Quincy Limo Prices", layout="centered")
 
 # --- 【GitHub Logo 設定】 ---
 # 請將下方連結替換為您從 GitHub 取得的 Raw 連結
-logo_url = "https://raw.githubusercontent.com/您的用戶名/項目名/分支名/logo.png"
+logo_url = "https://github.com/QuincyLimousine/Quincy-Limousine-Prices/blob/main/quincyLimo_Q.png"
 
 # 使用 HTML 讓 Logo 與標題並排，高度設定為 40px 以匹配標題大小
 st.markdown(
