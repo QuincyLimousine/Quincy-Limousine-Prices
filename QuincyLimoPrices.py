@@ -97,39 +97,49 @@ else:
     st.divider()
 
     # --- 最終報價顯示 ---
-    required_fields = [selected_type, selected_model, selected_region, selected_district]
-    if "請選擇" not in required_fields and "請先選擇地區" not in required_fields:
-        final_result = df[(df['Transfer Type'] == selected_type) & (df['Model'] == selected_model) & 
-                          (df['Region'] == selected_region) & (df['District'] == selected_district)]
+required_fields = [selected_type, selected_model, selected_region, selected_district]
 
-        if not final_result.empty:
-            base_price_raw = final_result.iloc[0]['Result']
-            try:
-                base_price = int(''.join(filter(str.isdigit, str(base_price_raw))))
-            except:
-                base_price = 0
-            
-            total_price = base_price + seat_fee + night_fee + meet_greet_fee
-            
-            st.subheader("📍 預約彙總與報價")
-            summary_data = {
-                "項目 (Item)": ["日期", "時間", "行程", "安全座椅", "接機服務", "基本車資", "總費用"],
-                "內容 (Details)": [
-                    selected_date.strftime("%Y-%m-%d"),
-                    pickup_input if pickup_input else "未輸入",
-                    f"{selected_type} ({selected_region}-{selected_district})",
-                    f"{seat_count} 張",
-                    "Meet & Greet ($80)" if meet_greet_fee > 0 else "無",
-                    f"${base_price}",
-                    f"HKD ${total_price}"
-                ]
-            }
-            st.table(pd.DataFrame(summary_data))
-            st.metric(label="預計總費用 (Total Estimated Price)", value=f"HKD ${total_price}")
-            
-            if night_fee > 0:
-                st.warning("🌙 已計入夜間服務費 $100 (22:00-07:00)")
+if "請選擇" not in required_fields and "請先選擇地區" not in required_fields:
+    final_result = df[
+        (df['Transfer Type'] == selected_type) & 
+        (df['Model'] == selected_model) & 
+        (df['Region'] == selected_region) & 
+        (df['District'] == selected_district)
+    ]
+
+    if not final_result.empty:
+        base_price_raw = final_result.iloc[0]['Result']
+        try:
+            base_price = int(''.join(filter(str.isdigit, str(base_price_raw))))
+        except:
+            base_price = 0
+        
+        total_price = base_price + seat_fee + night_fee + meet_greet_fee
+        
+        # --- 判斷行程顯示文字 ---
+        if selected_type == "Airport Transfer(Arrival)":
+            route_display = f"HKIA → {selected_district}"
         else:
-            st.warning("查無此組合價格。")
+            route_display = f"{selected_type} ({selected_region}-{selected_district})"
+        
+        st.subheader("📍 預約彙總與報價")
+        summary_data = {
+            "項目 (Item)": ["日期", "時間", "行程", "安全座椅", "接機服務", "基本車資", "總費用"],
+            "內容 (Details)": [
+                selected_date.strftime("%Y-%m-%d"),
+                pickup_input if pickup_input else "未輸入",
+                route_display, # 使用上面定義的判斷變數
+                f"{seat_count} 張",
+                "Meet & Greet ($80)" if meet_greet_fee > 0 else "無",
+                f"${base_price}",
+                f"HKD ${total_price}"
+            ]
+        }
+        
+        st.table(pd.DataFrame(summary_data))
+        st.metric(label="預計總費用 (Total Estimated Price)", value=f"HKD ${total_price}")
+        
+        if night_fee > 0:
+            st.warning("🌙 已計入夜間服務費 $100 (22:00-07:00)")
     else:
-        st.info("💡 請依序完成所有選單以獲取報價。")
+        st.warning("查無此組合價格。")
