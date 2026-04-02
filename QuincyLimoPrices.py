@@ -143,3 +143,5 @@ if "請選擇" not in required_fields and "請先選擇地區" not in required_f
             st.warning("🌙 已計入夜間服務費 $100 (22:00-07:00)")
     else:
         st.warning("查無此組合價格。")
+else:
+        st.info("💡 請依序完成所有選單以獲取報價。")
