@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 from dateutil import parser
-from datetime import date, datetime  # 引入 datetime 處理現在時間
+from datetime import date, datetime
 
-# 1. 初始化語言設定 (預設為中文)
+# 1. 初始化語言設定
 if 'lang' not in st.session_state:
     st.session_state.lang = 'CH'
 
@@ -19,7 +19,7 @@ texts = {
         'time_label': '使用時間:',
         'time_placeholder': '例如: 22:30',
         'night_warning': '🌙 已計入夜間服務費 $100 (22:00-07:00)',
-        'time_error': '❌ 選擇的時間不能早於當前時間。',
+        'time_error': '❌ 輸入的時間已過，請重新輸入。',
         'step2': '2. 接送詳情',
         'type_label': '接送類型:',
         'region_label': '地區:',
@@ -47,7 +47,7 @@ texts = {
         'time_label': 'Pick-up Time:',
         'time_placeholder': 'e.g. 10:30 PM',
         'night_warning': '🌙 Night surcharge $100 included (22:00-07:00)',
-        'time_error': '❌ Selected time cannot be in the past.',
+        'time_error': '❌ The input time has already passed.',
         'step2': '2. Transfer Details',
         'type_label': 'Transfer Type:',
         'region_label': 'Region:',
@@ -72,10 +72,9 @@ texts = {
 
 L = texts[st.session_state.lang]
 
-# 3. 網頁基本設定
+# 3. 網頁設定
 st.set_page_config(page_title="Quincy Limo Prices", layout="centered")
 
-# 頂部：標題與語言切換按鈕
 col_title, col_lang = st.columns([0.8, 0.2])
 with col_title:
     logo_url = "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/quincyLimo_Q.png"
@@ -111,8 +110,7 @@ else:
     st.subheader(L['step1'])
     col_t1, col_t2 = st.columns(2)
     
-    current_now = datetime.now()
-    is_invalid_time = False # 標記是否輸入了過去的時間
+    is_invalid_time = False 
 
     with col_t1:
         selected_date = st.date_input(L['date_label'], value=date.today(), min_value=date.today())
@@ -123,17 +121,18 @@ else:
         
         if pickup_input:
             try:
-                # 解析輸入時間
+                # 1. 解析輸入的小時與分鐘
                 parsed_time = parser.parse(pickup_input).time()
+                # 2. 將選定的日期與輸入的時間合併成一個完整時間點
+                combined_datetime = datetime.combine(selected_date, parsed_time)
                 
-                # 檢查是否為「今天」且「時間已過」
-                if selected_date == date.today():
-                    if parsed_time < current_now.time():
-                        st.error(L['time_error'])
-                        is_invalid_time = True
+                # 3. 【核心檢查】對比當下時刻
+                if combined_datetime < datetime.now():
+                    st.error(L['time_error'])
+                    is_invalid_time = True
                 
-                # 檢查夜間加費 (22:00 - 07:00)
                 if not is_invalid_time:
+                    # 夜間加費判斷 (22:00 - 07:00)
                     if parsed_time >= pd.to_datetime("22:00").time() or parsed_time <= pd.to_datetime("07:00").time():
                         night_fee = 100
             except:
@@ -160,7 +159,6 @@ else:
         else:
             selected_district = st.selectbox(L['district_label'], [L['select_reg_first']])
 
-    # 車型圖片預覽
     model_images = {
         "Comfort 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Compact%205-Seater.png",
         "Deluxe 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Deluxe%205-Seater.png",
@@ -194,7 +192,6 @@ else:
     # --- 報價計算 ---
     required = [selected_type, selected_model, selected_region, selected_district]
     
-    # 只有在時間有效、且所有欄位已填寫的情況下才計算
     if L['select_op'] not in required and L['select_reg_first'] not in required and not is_invalid_time:
         res = df[(df['Transfer Type'] == selected_type) & (df['Model'] == selected_model) & 
                  (df['Region'] == selected_region) & (df['District'] == selected_district)]
@@ -208,7 +205,6 @@ else:
             
             total_price = base_price + seat_fee + night_fee + meet_greet_fee
             
-            # 行程描述邏輯
             if selected_type == "Airport Transfer(Arrival)":
                 route = f"HKIA → {selected_district}"
             elif selected_type == "Airport Transfer(Departure)":
