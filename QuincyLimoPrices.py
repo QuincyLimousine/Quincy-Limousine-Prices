@@ -116,9 +116,16 @@ else:
     st.subheader(L['step1'])
     user_name = st.text_input(L['name_label']).strip()
 
+    # 全球區號清單 (按 A-Z 排序)
     raw_codes = [
-        ("🇨🇳 China +86", "+86"), ("🇭🇰 Hong Kong +852", "+852"), 
-        ("🇲🇴 Macau +853", "+853"), ("🇹🇼 Taiwan +886", "+886"), ("🇬🇧 UK +44", "+44"), ("🇺🇸 USA +1", "+1")
+        ("🇦🇺 Australia +61", "+61"), ("🇦🇹 Austria +43", "+43"), ("🇧🇪 Belgium +32", "+32"),
+        ("🇨🇦 Canada +1", "+1"), ("🇨🇳 China +86", "+86"), ("🇫🇷 France +33", "+33"),
+        ("🇩🇪 Germany +49", "+49"), ("🇭🇰 Hong Kong +852", "+852"), ("🇮🇳 India +91", "+91"),
+        ("🇮🇩 Indonesia +62", "+62"), ("🇮🇹 Italy +39", "+39"), ("🇯🇵 Japan +81", "+81"),
+        ("🇲🇴 Macau +853", "+853"), ("🇲🇾 Malaysia +60", "+60"), ("🇳🇱 Netherlands +31", "+31"),
+        ("🇳🇿 New Zealand +64", "+64"), ("🇵🇭 Philippines +63", "+63"), ("🇸🇬 Singapore +65", "+65"),
+        ("🇰🇷 South Korea +82", "+82"), ("🇪西班牙 Spain +34", "+34"), ("🇹🇼 Taiwan +886", "+886"),
+        ("🇹🇭 Thailand +66", "+66"), ("🇬🇧 UK +44", "+44"), ("🇺🇸 USA +1", "+1"), ("🇻🇳 Vietnam +84", "+84")
     ]
     country_codes = sorted(raw_codes, key=lambda x: x[0][3:])
 
