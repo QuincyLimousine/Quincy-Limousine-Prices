@@ -2,9 +2,8 @@ import streamlit as st
 import pandas as pd
 from dateutil import parser
 from datetime import date, datetime
-import re
 
-# 1. 初始化語言設定
+# 1. 初始化語言設定 (預設為中文)
 if 'lang' not in st.session_state:
     st.session_state.lang = 'CH'
 
@@ -18,19 +17,18 @@ texts = {
         'step1': '1. 客戶聯絡資料',
         'name_label': '姓名 (Full Name):',
         'phone_label': '電話號碼 (Phone Number):',
-        'phone_place': '例如: +852 9123 4567',
         'email_label': 'Gmail 地址:',
         'email_error': '⚠️ 請輸入有效的 Gmail 地址 (需包含 @gmail.com)',
         'step2': '2. 接送詳情與時間',
-        'date_label': '使用日期 (Date):',
-        'time_label': '使用時間 (Pick-up Time):',
+        'date_label': '使用日期:',
+        'time_label': '使用時間:',
         'time_placeholder': '例如: 22:30',
         'time_error': '❌ 輸入的時間已過，請重新輸入。',
         'night_warning': '🌙 已計入夜間服務費 $100 (22:00-07:00)',
-        'type_label': '接送類型 (Transfer Type):',
-        'region_label': '地區 (Region):',
-        'model_label': '車型 (Vehicle Type):',
-        'district_label': '區域 (District):',
+        'type_label': '接送類型:',
+        'region_label': '地區:',
+        'model_label': '車型:',
+        'district_label': '區域:',
         'select_op': '請選擇',
         'select_reg_first': '請先選擇地區',
         'step3': '3. 附加選項',
@@ -51,13 +49,12 @@ texts = {
         'step1': '1. Contact Information',
         'name_label': 'Full Name:',
         'phone_label': 'Phone Number:',
-        'phone_place': 'e.g., +852 9123 4567',
         'email_label': 'Gmail Address:',
         'email_error': '⚠️ Please enter a valid Gmail (must contain @gmail.com)',
         'step2': '2. Transfer Details & Time',
         'date_label': 'Date:',
         'time_label': 'Pick-up Time:',
-        'time_placeholder': 'e.g., 10:30 PM',
+        'time_placeholder': 'e.g. 10:30 PM',
         'time_error': '❌ The input time has already passed.',
         'night_warning': '🌙 Night surcharge $100 included (22:00-07:00)',
         'type_label': 'Transfer Type:',
@@ -86,7 +83,6 @@ L = texts[st.session_state.lang]
 # 3. 網頁基本設定
 st.set_page_config(page_title="Quincy Limo Prices", layout="centered")
 
-# 頂部：標題與語言切換
 col_title, col_lang = st.columns([0.8, 0.2])
 with col_title:
     logo_url = "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/quincyLimo_Q.png"
@@ -121,21 +117,37 @@ else:
     # --- 第一步：客戶聯絡資料 ---
     st.subheader(L['step1'])
     user_name = st.text_input(L['name_label'])
-    col_c1, col_c2 = st.columns(2)
-    with col_c1:
-        user_phone = st.text_input(L['phone_label'], placeholder=L['phone_place'])
-    with col_c2:
-        user_email = st.text_input(L['email_label'], placeholder="example@gmail.com")
-        is_email_valid = "@gmail.com" in user_email.lower() if user_email else True
-        if not is_email_valid:
-            st.caption(L['email_error'])
+
+    col_country, col_phone_num = st.columns([0.3, 0.7])
+    country_codes = [
+        ("🇭🇰 +852", "+852"), ("🇨🇳 +86", "+86"), ("🇲🇴 +853", "+853"),
+        ("🇹🇼 +886", "+886"), ("🇬🇧 +44", "+44"), ("🇺🇸 +1", "+1"),
+        ("🇯🇵 +81", "+81"), ("🇰🇷 +82", "+82"), ("🇸🇬 +65", "+65"), ("🇦🇺 +61", "+61")
+    ]
+
+    with col_country:
+        selected_code_display = st.selectbox(
+            "Code", 
+            options=[c[0] for c in country_codes],
+            index=0
+        )
+        selected_code = next(c[1] for c in country_codes if c[0] == selected_code_display)
+
+    with col_phone_num:
+        phone_number_only = st.text_input(L['phone_label'], placeholder="9123 4567")
+
+    user_phone = f"{selected_code} {phone_number_only}" if phone_number_only else ""
+
+    user_email = st.text_input(L['email_label'], placeholder="example@gmail.com")
+    is_email_valid = "@gmail.com" in user_email.lower() if user_email else True
+    if not is_email_valid:
+        st.caption(L['email_error'])
 
     st.divider()
 
     # --- 第二步：接送詳情與時間 ---
     st.subheader(L['step2'])
     
-    # 日期與時間並列
     col_t1, col_t2 = st.columns(2)
     is_invalid_time = False 
     with col_t1:
@@ -147,16 +159,17 @@ else:
             try:
                 parsed_time = parser.parse(pickup_input).time()
                 combined_dt = datetime.combine(selected_date, parsed_time)
+                # 檢查是否為過去的時間
                 if combined_dt < datetime.now():
                     st.error(L['time_error'])
                     is_invalid_time = True
+                
                 if not is_invalid_time:
                     if parsed_time >= pd.to_datetime("22:00").time() or parsed_time <= pd.to_datetime("07:00").time():
                         night_fee = 100
             except:
                 st.caption("Format: 22:30 / 10:30 PM")
 
-    # 接送選單
     col_s1, col_s2 = st.columns(2)
     with col_s1:
         t_types = [L['select_op']] + sorted(df['Transfer Type'].dropna().unique().tolist())
@@ -172,7 +185,6 @@ else:
         else:
             selected_district = st.selectbox(L['district_label'], [L['select_reg_first']])
 
-    # 車型圖片
     model_images = {
         "Comfort 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Compact%205-Seater.png",
         "Deluxe 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Deluxe%205-Seater.png",
@@ -201,7 +213,7 @@ else:
     st.divider()
 
     # --- 報價計算與彙總 ---
-    required_fields = [selected_type, selected_model, selected_region, selected_district, user_name, user_phone, user_email]
+    required_fields = [selected_type, selected_model, selected_region, selected_district, user_name, phone_number_only, user_email]
     
     if L['select_op'] not in required_fields and "" not in required_fields and is_email_valid and not is_invalid_time:
         res = df[(df['Transfer Type'] == selected_type) & (df['Model'] == selected_model) & 
@@ -226,16 +238,11 @@ else:
             summary = {
                 f"{L['item']}": L['items_list'],
                 f"{L['details']}": [
-                    user_name,
-                    user_phone,
-                    user_email,
-                    selected_date.strftime("%Y-%m-%d"),
-                    pickup_input,
-                    route,
-                    f"{seat_count} {L['seat_unit']}",
+                    user_name, user_phone, user_email,
+                    selected_date.strftime("%Y-%m-%d"), pickup_input,
+                    route, f"{seat_count} {L['seat_unit']}",
                     "$80" if meet_greet_fee > 0 else "N/A",
-                    f"${base_price}",
-                    f"HKD ${total_price}"
+                    f"${base_price}", f"HKD ${total_price}"
                 ]
             }
             st.table(pd.DataFrame(summary))
