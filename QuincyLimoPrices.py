@@ -116,7 +116,10 @@ df = load_data()
 # 步驟 1: 聯絡資料
 if st.session_state.step == 1:
     st.subheader(L['step1'])
-    u_name = st.text_input(L['name_label'], value=st.session_state.get('u_name', '')).strip()
+    
+    # 使用 key 讓 Streamlit 自動保存狀態，解決抓不到數值的 Bug
+    u_name = st.text_input(L['name_label'], key='u_name_input', 
+                          value=st.session_state.get('u_name', '')).strip()
     
     raw_codes = [("🇭🇰 Hong Kong +852", "+852"), ("🇨🇳 China +86", "+86"), ("🇲🇴 Macau +853", "+853"), ("🇹🇼 Taiwan +886", "+886")]
     country_codes = sorted(raw_codes, key=lambda x: x[0][3:])
@@ -127,12 +130,17 @@ if st.session_state.step == 1:
         code_disp = st.selectbox("Code", options=[c[0] for c in country_codes], index=hk_idx)
         sel_code = next(c[1] for c in country_codes if c[0] == code_disp)
     with col_p:
-        u_phone_raw = st.text_input(L['phone_label'], value=st.session_state.get('u_phone_raw', ''), placeholder="9123 4567").strip()
+        u_phone_raw = st.text_input(L['phone_label'], key='u_phone_raw_input',
+                                   value=st.session_state.get('u_phone_raw', ''), placeholder="9123 4567").strip()
     
-    u_email = st.text_input(L['email_label'], value=st.session_state.get('u_email', ''), placeholder="example@gmail.com").strip()
+    u_email = st.text_input(L['email_label'], key='u_email_input',
+                           value=st.session_state.get('u_email', ''), placeholder="example@gmail.com").strip()
+    
+    # 驗證邏輯
     email_valid = "@gmail.com" in u_email.lower() if u_email else False
 
     if st.button(L['next']):
+        # 確保所有欄位都有值且 Email 格式正確
         if u_name and u_phone_raw and email_valid:
             st.session_state.u_name = u_name
             st.session_state.u_phone_raw = u_phone_raw
@@ -141,8 +149,10 @@ if st.session_state.step == 1:
             st.session_state.step = 2
             st.rerun()
         else:
-            if u_email and not email_valid: st.error(L['email_error'])
-            else: st.warning(L['fill_all'])
+            if u_email and not email_valid: 
+                st.error(L['email_error'])
+            else: 
+                st.warning(L['fill_all'])
 
 # 步驟 2: 行程詳情 (移除時間驗證邏輯)
 elif st.session_state.step == 2:
