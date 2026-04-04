@@ -218,34 +218,71 @@ elif st.session_state.step == 2:
 elif st.session_state.step == 3:
     st.subheader(L['step3']) 
     
-    # 使用持久化變數進行計算
+    # 1. 從持久化變數提取資料並過濾 DataFrame
     res = df[(df['Transfer Type'] == st.session_state.s_type_val) & 
              (df['Model'] == st.session_state.s_model_val) & 
              (df['Region'] == st.session_state.s_region_val) & 
              (df['District'] == st.session_state.s_district_val)]
 
     if not res.empty:
-        base_price = int(''.join(filter(str.isdigit, str(res.iloc[0]['Result']))))
+        # 2. 基礎車資提取
+        base_raw = res.iloc[0]['Result']
+        try:
+            base_price = int(''.join(filter(str.isdigit, str(base_raw))))
+        except:
+            base_price = 0
+            
+        # 3. 附加費計算 (夜間、接機、安全座椅)
         try:
             parsed_time = parser.parse(st.session_state.p_time_val).time()
             night_fee = 100 if (parsed_time >= pd.to_datetime("22:00").time() or 
                                 parsed_time <= pd.to_datetime("07:00").time()) else 0
-        except: night_fee = 0 
+        except: 
+            night_fee = 0 
             
         mg_fee = 80 if st.session_state.mg_selected_val else 0
         seat_fee = st.session_state.seat_count_val * 120
-        total = base_price + night_fee + mg_fee + seat_fee
+        total_price = base_price + night_fee + mg_fee + seat_fee
         
-        # 顯示彙總表，現在使用 _val 變數不會報錯
-        summary_df = pd.DataFrame({L['item']: L['items_list'], L['details']: [
-            st.session_state.u_name_val, st.session_state.u_phone_full, st.session_state.u_email_val, 
-            st.session_state.s_date_val.strftime("%Y-%m-%d"), st.session_state.p_time_val, 
-            st.session_state.s_district_val, st.session_state.seat_count_val, 
-            f"${mg_fee}", f"${base_price}", f"HKD ${total}"
-        ]})
-        st.table(summary_df)
-        st.metric(label=L['total_metric'], value=f"HKD ${total}")
+        # 4. 路由名稱優化 (根據接送類型顯示不同格式)
+        s_type = st.session_state.s_type_val
+        s_district = st.session_state.s_district_val
+        
+        if "Arrival" in s_type:
+            route = f"HKIA → {s_district}"
+        elif "Departure" in s_type:
+            route = f"{s_district} → HKIA"
+        else:
+            route = f"{s_type} ({s_district})"
+        
+        # 5. 構建彙總表 (融合第一段的字典結構與第二段的持久化變數)
+        summary_data = {
+            L['item']: L['items_list'],
+            L['details']: [
+                st.session_state.u_name_val, 
+                st.session_state.u_phone_full, 
+                st.session_state.u_email_val, 
+                st.session_state.s_date_val.strftime("%Y-%m-%d"), 
+                st.session_state.p_time_val, 
+                route, 
+                f"{st.session_state.seat_count_val} {L['seat_unit']}", 
+                f"${mg_fee}" if mg_fee > 0 else "N/A", 
+                f"${base_price}", 
+                f"HKD ${total_price}"
+            ]
+        }
+        
+        # 6. UI 渲染
+        st.table(pd.DataFrame(summary_data))
+        st.metric(label=L['total_metric'], value=f"HKD ${total_price}")
+        
+        if night_fee > 0:
+            st.warning(L['night_warning'])
+            
     else: 
         st.error(L['no_price'])
     
-    if st.button(L['prev']): st.session_state.step = 2; st.rerun()
+    # 返回按鈕
+    if st.button(L['prev']): 
+        st.session_state.step = 2
+        st.rerun()
