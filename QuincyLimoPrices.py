@@ -9,6 +9,14 @@ if 'lang' not in st.session_state:
 if 'step' not in st.session_state:
     st.session_state.step = 1
 
+# 初始化持久化變數，防止 AttributeError
+persistent_vars = ['u_name_val', 'u_phone_full', 'u_phone_raw_val', 'u_email_val', 
+                   'p_time_val', 's_type_val', 's_model_val', 's_region_val', 
+                   's_district_val', 'seat_count_val', 'mg_selected_val']
+for var in persistent_vars:
+    if var not in st.session_state:
+        st.session_state[var] = "" if "val" in var else False
+
 def toggle_language():
     st.session_state.lang = 'EN' if st.session_state.lang == 'CH' else 'CH'
 
@@ -115,8 +123,7 @@ df = load_data()
 if st.session_state.step == 1:
     st.subheader(L['step1'])
     
-    # 這裡移除 value=...，改用 key 綁定
-    st.text_input(L['name_label'], key='u_name', placeholder="Chan Tai Man")
+    st.text_input(L['name_label'], key='u_name', value=st.session_state.u_name_val)
     
     raw_codes = [("🇭🇰 Hong Kong +852", "+852"), ("🇨🇳 China +86", "+86"), ("🇲🇴 Macau +853", "+853"), ("🇹🇼 Taiwan +886", "+886")]
     country_codes = sorted(raw_codes, key=lambda x: x[0][3:])
@@ -126,31 +133,26 @@ if st.session_state.step == 1:
         hk_idx = next((i for i, c in enumerate(country_codes) if "+852" in c[1]), 0)
         st.selectbox("Code", options=[c[0] for c in country_codes], index=hk_idx, key='sel_code_disp')
     with col_p:
-        st.text_input(L['phone_label'], key='u_phone_raw', placeholder="9123 4567")
+        st.text_input(L['phone_label'], key='u_phone_raw', value=st.session_state.u_phone_raw_val)
     
-    st.text_input(L['email_label'], key='u_email', placeholder="example@gmail.com")
+    st.text_input(L['email_label'], key='u_email', value=st.session_state.u_email_val)
     
-    # 點擊「下一步」按鈕
     if st.button(L['next']):
-        # 直接從 session_state 讀取當前畫面上的值
         name = st.session_state.u_name.strip()
-        phone_raw = st.session_state.u_phone_raw.strip()
+        phone = st.session_state.u_phone_raw.strip()
         email = st.session_state.u_email.strip()
-        
-        # 獲取選中的區碼
         sel_code = next(c[1] for c in country_codes if c[0] == st.session_state.sel_code_disp)
         
-        email_valid = "@gmail.com" in email.lower() if email else False
-
-        if name and phone_raw and email_valid:
-            st.session_state.u_phone_full = f"{sel_code} {phone_raw}"
+        if name and phone and "@gmail.com" in email.lower():
+            # 強制存入持久化變數
+            st.session_state.u_name_val = name
+            st.session_state.u_phone_raw_val = phone
+            st.session_state.u_phone_full = f"{sel_code} {phone}"
+            st.session_state.u_email_val = email
             st.session_state.step = 2
             st.rerun()
         else:
-            if email and not email_valid: 
-                st.error(L['email_error'])
-            else: 
-                st.warning(L['fill_all'])
+            st.warning(L['fill_all'])
 
 # 步驟 2: 行程詳情
 elif st.session_state.step == 2:
@@ -158,9 +160,9 @@ elif st.session_state.step == 2:
     
     col_t1, col_t2 = st.columns(2)
     with col_t1:
-        st.date_input(L['date_label'], key='s_date', min_value=date.today())
+        st.date_input(L['date_label'], key='s_date_widget', min_value=date.today())
     with col_t2:
-        st.text_input(L['time_label'], key='p_time', placeholder=L['time_placeholder'])
+        st.text_input(L['time_label'], key='p_time', value=st.session_state.p_time_val)
     
     st.divider()
     
@@ -168,7 +170,6 @@ elif st.session_state.step == 2:
     with col_s1:
         t_types = [L['select_op']] + sorted(df['Transfer Type'].dropna().unique().tolist())
         st.selectbox(L['type_label'], t_types, key='s_type')
-        
         regs = [L['select_op']] + sorted(df['Region'].dropna().unique().tolist())
         st.selectbox(L['region_label'], regs, key='s_region')
         
@@ -176,41 +177,38 @@ elif st.session_state.step == 2:
         mods = [L['select_op']] + sorted(df['Model'].dropna().unique().tolist())
         st.selectbox(L['model_label'], mods, key='s_model')
         
-        # 處理動態地區選單
-        current_reg = st.session_state.s_region
-        if current_reg != L['select_op']:
-            dists = [L['select_op']] + sorted(df[df['Region'] == current_reg]['District'].dropna().unique().tolist())
+        if st.session_state.s_region != L['select_op']:
+            dists = [L['select_op']] + sorted(df[df['Region'] == st.session_state.s_region]['District'].dropna().unique().tolist())
             st.selectbox(L['district_label'], dists, key='s_district')
         else:
-            st.selectbox(L['district_label'], [L['select_reg_first']], disabled=True, key='s_district_disabled')
+            st.selectbox(L['district_label'], [L['select_reg_first']], disabled=True, key='s_district_tmp')
 
     st.divider()
 
     col_o1, col_o2 = st.columns(2)
     with col_o1:
-        st.number_input(L['seat_label'], min_value=0, max_value=4, key='seat_count_val')
+        st.number_input(L['seat_label'], min_value=0, max_value=4, key='seat_count')
     with col_o2:
         if "Arrival" in st.session_state.s_type:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.checkbox(L['mg_pickup'], key='mg_selected_val')
-        else:
-            # 非接機行程強制設為 False
-            st.session_state.mg_selected_val = False
+            st.checkbox(L['mg_pickup'], key='mg_selected')
 
     col_nav1, col_nav2 = st.columns(2)
     with col_nav1:
         if st.button(L['prev']): st.session_state.step = 1; st.rerun()
     with col_nav2:
         if st.button(L['next']):
-            # 檢查必填項
-            time_input = st.session_state.p_time.strip()
-            type_sel = st.session_state.s_type
-            model_sel = st.session_state.s_model
-            region_sel = st.session_state.s_region
-            district_sel = st.session_state.get('s_district', L['select_op'])
-            
-            if time_input and type_sel != L['select_op'] and model_sel != L['select_op'] and \
-               region_sel != L['select_op'] and district_sel != L['select_op']:
+            time_val = st.session_state.p_time.strip()
+            if time_val and st.session_state.s_type != L['select_op'] and st.session_state.s_region != L['select_op']:
+                # 存入持久化變數
+                st.session_state.p_time_val = time_val
+                st.session_state.s_type_val = st.session_state.s_type
+                st.session_state.s_model_val = st.session_state.s_model
+                st.session_state.s_region_val = st.session_state.s_region
+                st.session_state.s_district_val = st.session_state.get('s_district', '')
+                st.session_state.seat_count_val = st.session_state.seat_count
+                st.session_state.mg_selected_val = st.session_state.get('mg_selected', False)
+                st.session_state.s_date_val = st.session_state.s_date_widget
+                
                 st.session_state.step = 3
                 st.rerun()
             else:
@@ -220,37 +218,33 @@ elif st.session_state.step == 2:
 elif st.session_state.step == 3:
     st.subheader(L['step3']) 
     
-    # 從 session_state 提取資料進行過濾
-    res = df[(df['Transfer Type'].astype(str).str.strip() == st.session_state.s_type) & 
-             (df['Model'].astype(str).str.strip() == st.session_state.s_model) & 
-             (df['Region'].astype(str).str.strip() == st.session_state.s_region) & 
-             (df['District'].astype(str).str.strip() == st.session_state.s_district)]
+    # 使用持久化變數進行計算
+    res = df[(df['Transfer Type'] == st.session_state.s_type_val) & 
+             (df['Model'] == st.session_state.s_model_val) & 
+             (df['Region'] == st.session_state.s_region_val) & 
+             (df['District'] == st.session_state.s_district_val)]
 
     if not res.empty:
         base_price = int(''.join(filter(str.isdigit, str(res.iloc[0]['Result']))))
-        
         try:
-            parsed_time = parser.parse(st.session_state.p_time).time()
+            parsed_time = parser.parse(st.session_state.p_time_val).time()
             night_fee = 100 if (parsed_time >= pd.to_datetime("22:00").time() or 
                                 parsed_time <= pd.to_datetime("07:00").time()) else 0
-        except:
-            night_fee = 0 
+        except: night_fee = 0 
             
-        mg_fee = 80 if st.session_state.get('mg_selected_val', False) else 0
-        seat_fee = st.session_state.get('seat_count_val', 0) * 120
+        mg_fee = 80 if st.session_state.mg_selected_val else 0
+        seat_fee = st.session_state.seat_count_val * 120
         total = base_price + night_fee + mg_fee + seat_fee
         
-        route = f"HKIA → {st.session_state.s_district}" if "Arrival" in st.session_state.s_type else (f"{st.session_state.s_district} → HKIA" if "Departure" in st.session_state.s_type else f"{st.session_state.s_type} ({st.session_state.s_district})")
-        
+        # 顯示彙總表，現在使用 _val 變數不會報錯
         summary_df = pd.DataFrame({L['item']: L['items_list'], L['details']: [
-            st.session_state.u_name, st.session_state.u_phone_full, st.session_state.u_email, 
-            st.session_state.s_date.strftime("%Y-%m-%d"), st.session_state.p_time, route, 
-            f"{st.session_state.seat_count_val} {L['seat_unit']}", 
-            f"${mg_fee}" if mg_fee > 0 else "N/A", f"${base_price}", f"HKD ${total}"
+            st.session_state.u_name_val, st.session_state.u_phone_full, st.session_state.u_email_val, 
+            st.session_state.s_date_val.strftime("%Y-%m-%d"), st.session_state.p_time_val, 
+            st.session_state.s_district_val, st.session_state.seat_count_val, 
+            f"${mg_fee}", f"${base_price}", f"HKD ${total}"
         ]})
         st.table(summary_df)
         st.metric(label=L['total_metric'], value=f"HKD ${total}")
-        if night_fee > 0: st.warning(L['night_warning'])
     else: 
         st.error(L['no_price'])
     
