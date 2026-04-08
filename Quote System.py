@@ -287,12 +287,14 @@ elif st.session_state.step == 2:
 elif st.session_state.step == 3:
     st.subheader(L['step3']) 
     
+    # 資料庫比對邏輯
     res = df[(df['Transfer Type'] == st.session_state.s_type_val) & 
              (df['Model'] == st.session_state.s_model_val) & 
              (df['Region'] == st.session_state.s_region_val) & 
              (df['District'] == st.session_state.s_district_val)]
 
     if not res.empty:
+        # --- 費用計算 (與先前相同) ---
         base_raw = res.iloc[0]['Result']
         try:
             base_price = int(''.join(filter(str.isdigit, str(base_raw))))
@@ -308,32 +310,39 @@ elif st.session_state.step == 3:
         seat_fee = st.session_state.seat_count_val * 120
         total_price = base_price + night_fee + mg_fee + seat_fee
         
-        s_type = st.session_state.s_type_val
-        s_district = st.session_state.s_district_val
-        route = f"HKIA → {s_district}" if "Arrival" in s_type else (f"{s_district} → HKIA" if "Departure" in s_type else f"{s_type} ({s_district})")
-        
+        route = f"HKIA → {st.session_state.s_district_val}" if "Arrival" in st.session_state.s_type_val else (f"{st.session_state.s_district_val} → HKIA" if "Departure" in st.session_state.s_type_val else f"{st.session_state.s_type_val}")
         m = L['map_labels']
-        items = [
-            (m["Name"], st.session_state.u_name_val),
-            (m["Phone"], st.session_state.u_phone_full),
-            (m["Gmail"], st.session_state.u_email_val),
+
+        # --- 1. 客戶資訊 (隱藏於 Expander) ---
+        # 這裡將名稱改為根據語系顯示 "客戶資訊" 或 "Customer Information"
+        info_label = "👤 客戶資訊 (Customer Info)" if st.session_state.lang == 'CH' else "👤 Customer Information"
+        with st.expander(info_label):
+            customer_data = [
+                (m["Name"], st.session_state.u_name_val),
+                (m["Phone"], st.session_state.u_phone_full),
+                (m["Gmail"], st.session_state.u_email_val)
+            ]
+            st.table(pd.DataFrame(customer_data, columns=[L['item'], L['details']]))
+
+        # --- 2. 行程與費用彙總 (直接顯示) ---
+        billing_items = [
             (m["Date"], st.session_state.s_date_val.strftime("%Y-%m-%d")),
             (m["Time"], st.session_state.p_time_val),
             (m["Route"], route)
         ]
         
         if st.session_state.seat_count_val > 0:
-            items.append((m["Seat"], f"{st.session_state.seat_count_val} {L['seat_unit']}"))
+            billing_items.append((m["Seat"], f"{st.session_state.seat_count_val} {L['seat_unit']}"))
             
         if st.session_state.mg_selected_val:
-            items.append((m["MG"], f"${mg_fee}"))
+            billing_items.append((m["MG"], f"${mg_fee}"))
             
-        items.extend([
+        billing_items.extend([
             (m["Base"], f"${base_price}"),
             (m["Total"], f"HKD ${total_price}")
         ])
         
-        summary_df = pd.DataFrame(items, columns=[L['item'], L['details']])
+        summary_df = pd.DataFrame(billing_items, columns=[L['item'], L['details']])
         st.table(summary_df)
         st.metric(label=L['total_metric'], value=f"HKD ${total_price}")
         
