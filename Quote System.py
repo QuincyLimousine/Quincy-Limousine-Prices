@@ -52,7 +52,7 @@ texts = {
         'total_metric': '預計總費用',
         'no_price': '查無此組合價格，請聯繫客服。',
         'seat_unit': '張',
-        'customer_info_label': '👤 客戶資訊 (點擊展開)',
+        'customer_info': '👤 客戶資訊 (Customer Info)',
         'map_labels': {
             "Name": "客戶姓名", "Phone": "聯絡電話", "Gmail": "Gmail", 
             "Date": "日期", "Time": "時間", "Route": "行程路徑", 
@@ -90,7 +90,7 @@ texts = {
         'total_metric': 'Total Estimated Price',
         'no_price': 'Price not found for this combination.',
         'seat_unit': 'Seat(s)',
-        'customer_info_label': '👤 Customer Information (Click to Expand)',
+        'customer_info': '👤 Customer Information',
         'map_labels': {
             "Name": "Name", "Phone": "Phone", "Gmail": "Gmail", 
             "Date": "Date", "Time": "Time", "Route": "Route", 
@@ -133,13 +133,13 @@ if st.session_state.step == 1:
     st.subheader(L['step1'])
     st.text_input(L['name_label'], key='u_name', value=st.session_state.u_name_val)
     
-    # 全球區號清單 (保持原樣)
-    raw_codes_data = [("Hong Kong +852", "+852"), ("China +86", "+86"), ("Macau +853", "+853"), ("Taiwan +886", "+886"), ("United Kingdom +44", "+44"), ("United States +1", "+1")] # 縮減示範
+    # 簡化版區號清單
+    raw_codes_data = [("Hong Kong +852", "+852"), ("China +86", "+86"), ("Macau +853", "+853"), ("Taiwan +886", "+886"), ("United Kingdom +44", "+44"), ("United States +1", "+1")] # ...其餘略
     country_codes = sorted(raw_codes_data, key=lambda x: x[0])
     
     col_c, col_p = st.columns([0.45, 0.55])
     with col_c:
-        try: hk_idx = next(i for i, c in enumerate(country_codes) if "Hong Kong" in c[0])
+        try: hk_idx = next(i for i, c in enumerate(country_codes) if "+852" in c[1])
         except: hk_idx = 0
         st.selectbox("Code", options=[c[0] for c in country_codes], index=hk_idx, key='sel_code_disp')
     with col_p:
@@ -148,22 +148,26 @@ if st.session_state.step == 1:
     st.text_input(L['email_label'], key='u_email', value=st.session_state.u_email_val)
     
     if st.button(L['next']):
-        name, phone, email = st.session_state.u_name.strip(), st.session_state.u_phone_raw.strip(), st.session_state.u_email.strip()
-        sel_code = next(c[1] for c in country_codes if c[0] == st.session_state.sel_code_disp)
-        if name and phone and "@gmail.com" in email.lower():
-            st.session_state.u_name_val, st.session_state.u_phone_raw_val, st.session_state.u_email_val = name, phone, email
-            st.session_state.u_phone_full = f"{sel_code} {phone}"
+        if st.session_state.u_name and st.session_state.u_phone_raw and "@gmail.com" in st.session_state.u_email.lower():
+            sel_code = next(c[1] for c in country_codes if c[0] == st.session_state.sel_code_disp)
+            st.session_state.u_name_val = st.session_state.u_name
+            st.session_state.u_phone_raw_val = st.session_state.u_phone_raw
+            st.session_state.u_phone_full = f"{sel_code} {st.session_state.u_phone_raw}"
+            st.session_state.u_email_val = st.session_state.u_email
             st.session_state.step = 2
             st.rerun()
-        else: st.warning(L['fill_all'])
+        else:
+            st.warning(L['fill_all'])
 
 # 步驟 2: 行程詳情
 elif st.session_state.step == 2:
     st.subheader(L['step2'])
     
     col_t1, col_t2 = st.columns(2)
-    with col_t1: st.date_input(L['date_label'], key='s_date_widget', min_value=date.today())
-    with col_t2: st.text_input(L['time_label'], key='p_time', value=st.session_state.p_time_val)
+    with col_t1:
+        st.date_input(L['date_label'], key='s_date_widget', min_value=date.today())
+    with col_t2:
+        st.text_input(L['time_label'], key='p_time', value=st.session_state.p_time_val)
     
     st.divider()
     
@@ -172,11 +176,10 @@ elif st.session_state.step == 2:
         t_types = [L['select_op']] + sorted(df['Transfer Type'].dropna().unique().tolist())
         st.selectbox(L['type_label'], t_types, key='s_type')
         
-        # 車型選擇與圖片顯示邏輯
         mods = [L['select_op']] + sorted(df['Model'].dropna().unique().tolist())
         selected_model = st.selectbox(L['model_label'], mods, key='s_model')
         
-        # --- 新增圖片融入點 ---
+        # --- 融入車型圖片邏輯 ---
         model_images = {
             "Comfort 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Compact%205-Seater.png",
             "Deluxe 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Deluxe%205-Seater.png",
@@ -185,31 +188,36 @@ elif st.session_state.step == 2:
         }
         if selected_model in model_images:
             st.image(model_images[selected_model], use_container_width=True)
-            
+
     with col_s2:
         regs = [L['select_op']] + sorted(df['Region'].dropna().unique().tolist())
         st.selectbox(L['region_label'], regs, key='s_region')
+        
         if st.session_state.s_region != L['select_op']:
             dists = [L['select_op']] + sorted(df[df['Region'] == st.session_state.s_region]['District'].dropna().unique().tolist())
             st.selectbox(L['district_label'], dists, key='s_district')
-        else: st.selectbox(L['district_label'], [L['select_reg_first']], disabled=True, key='s_district_tmp')
+        else:
+            st.selectbox(L['district_label'], [L['select_reg_first']], disabled=True, key='s_district_tmp')
 
     st.divider()
+
     col_o1, col_o2 = st.columns(2)
-    with col_o1: st.number_input(L['seat_label'], min_value=0, max_value=4, key='seat_count')
+    with col_o1:
+        st.number_input(L['seat_label'], min_value=0, max_value=4, key='seat_count')
     with col_o2:
         if "Arrival" in st.session_state.s_type:
             st.markdown("<br>", unsafe_allow_html=True)
             st.checkbox(L['mg_pickup'], key='mg_selected', value=st.session_state.mg_selected_val)
-        else: st.session_state.mg_selected_val = False
+        else:
+            st.session_state.mg_selected_val = False
 
     col_nav1, col_nav2 = st.columns(2)
     with col_nav1:
         if st.button(L['prev']): st.session_state.step = 1; st.rerun()
     with col_nav2:
         if st.button(L['next']):
-            if st.session_state.p_time.strip() and st.session_state.s_type != L['select_op'] and st.session_state.s_region != L['select_op']:
-                st.session_state.p_time_val = st.session_state.p_time.strip()
+            if st.session_state.p_time and st.session_state.s_type != L['select_op'] and st.session_state.s_region != L['select_op']:
+                st.session_state.p_time_val = st.session_state.p_time
                 st.session_state.s_type_val = st.session_state.s_type
                 st.session_state.s_model_val = st.session_state.s_model
                 st.session_state.s_region_val = st.session_state.s_region
@@ -219,50 +227,62 @@ elif st.session_state.step == 2:
                 st.session_state.s_date_val = st.session_state.s_date_widget
                 st.session_state.step = 3
                 st.rerun()
-            else: st.warning(L['fill_all'])
+            else:
+                st.warning(L['fill_all'])
 
 # 步驟 3: 報價彙總
 elif st.session_state.step == 3:
     st.subheader(L['step3']) 
+    
     res = df[(df['Transfer Type'] == st.session_state.s_type_val) & 
              (df['Model'] == st.session_state.s_model_val) & 
              (df['Region'] == st.session_state.s_region_val) & 
              (df['District'] == st.session_state.s_district_val)]
 
     if not res.empty:
-        # 計算價格
-        base_price = int(''.join(filter(str.isdigit, str(res.iloc[0]['Result']))))
+        base_raw = res.iloc[0]['Result']
+        try: base_price = int(''.join(filter(str.isdigit, str(base_raw))))
+        except: base_price = 0
+            
         try:
-            pt = parser.parse(st.session_state.p_time_val).time()
-            night_fee = 100 if (pt >= pd.to_datetime("22:00").time() or pt <= pd.to_datetime("07:00").time()) else 0
+            parsed_time = parser.parse(st.session_state.p_time_val).time()
+            night_fee = 100 if (parsed_time >= pd.to_datetime("22:00").time() or 
+                                parsed_time <= pd.to_datetime("07:00").time()) else 0
         except: night_fee = 0 
-        mg_fee, seat_fee = (80 if st.session_state.mg_selected_val else 0), (st.session_state.seat_count_val * 120)
+            
+        mg_fee = 80 if st.session_state.mg_selected_val else 0
+        seat_fee = st.session_state.seat_count_val * 120
         total_price = base_price + night_fee + mg_fee + seat_fee
         
-        route = f"HKIA → {st.session_state.s_district_val}" if "Arrival" in st.session_state.s_type_val else (f"{st.session_state.s_district_val} → HKIA" if "Departure" in st.session_state.s_type_val else f"{st.session_state.s_type_val}")
+        route = f"HKIA → {st.session_state.s_district_val}" if "Arrival" in st.session_state.s_type_val else (f"{st.session_state.s_district_val} → HKIA" if "Departure" in st.session_state.s_type_val else f"{st.session_state.s_type_val} ({st.session_state.s_district_val})")
         m = L['map_labels']
 
-        # --- 1. 客戶資訊 (隱藏於 Expander) ---
-        with st.expander(L['customer_info_label']):
+        # --- 1. 客戶資訊 (折疊顯示) ---
+        with st.expander(L['customer_info']):
             st.table(pd.DataFrame([
                 (m["Name"], st.session_state.u_name_val),
                 (m["Phone"], st.session_state.u_phone_full),
                 (m["Gmail"], st.session_state.u_email_val)
             ], columns=[L['item'], L['details']]))
 
-        # --- 2. 行程與費用 (直接顯示) ---
-        items = [
+        # --- 2. 報價與行程 (直接顯示) ---
+        billing_items = [
             (m["Date"], st.session_state.s_date_val.strftime("%Y-%m-%d")),
             (m["Time"], st.session_state.p_time_val),
             (m["Route"], route)
         ]
-        if st.session_state.seat_count_val > 0: items.append((m["Seat"], f"{st.session_state.seat_count_val} {L['seat_unit']}"))
-        if st.session_state.mg_selected_val: items.append((m["MG"], f"${mg_fee}"))
-        items.extend([(m["Base"], f"${base_price}"), (m["Total"], f"HKD ${total_price}")])
+        if st.session_state.seat_count_val > 0: billing_items.append((m["Seat"], f"{st.session_state.seat_count_val} {L['seat_unit']}"))
+        if st.session_state.mg_selected_val: billing_items.append((m["MG"], f"${mg_fee}"))
+        billing_items.extend([(m["Base"], f"${base_price}"), (m["Total"], f"HKD ${total_price}")])
         
-        st.table(pd.DataFrame(items, columns=[L['item'], L['details']]))
+        st.table(pd.DataFrame(billing_items, columns=[L['item'], L['details']]))
         st.metric(label=L['total_metric'], value=f"HKD ${total_price}")
+        
         if night_fee > 0: st.warning(L['night_warning'])
-    else: st.error(L['no_price'])
+            
+    else: 
+        st.error(L['no_price'])
     
-    if st.button(L['prev']): st.session_state.step = 2; st.rerun()
+    if st.button(L['prev']): 
+        st.session_state.step = 2
+        st.rerun()
