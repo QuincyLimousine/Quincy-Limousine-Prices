@@ -214,15 +214,6 @@ elif st.session_state.step == 2:
     st.divider()
     
     col_s1, col_s2 = st.columns(2)
-
-    model_images = {
-        "Comfort 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Compact%205-Seater.png",
-        "Deluxe 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Deluxe%205-Seater.png",
-        "Deluxe 7-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Deluxe%207-Seater.png",
-        "Premium 7-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Premium%207-Seater.png"
-    }
-    if selected_model in model_images:
-        st.image(model_images[selected_model], use_container_width=True)
         
     with col_s1:
         t_types = [L['select_op']] + sorted(df['Transfer Type'].dropna().unique().tolist())
