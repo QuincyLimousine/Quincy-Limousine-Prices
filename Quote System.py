@@ -236,7 +236,7 @@ elif st.session_state.step == 2:
         else:
             st.selectbox(L['district_label'], [L['select_reg_first']], disabled=True, key='s_district_tmp')
 
-    # --- 新增：車型圖片顯示 (放在車型及地域下方的中間位置) ---
+    # --- 更新：車型圖片顯示 (移除中間的 column 限制，使其與上方選單同闊) ---
     model_images = {
         "Comfort 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Compact%205-Seater.png",
         "Deluxe 5-Seater": "https://raw.githubusercontent.com/QuincyLimousine/Quincy-Limousine-Prices/main/Vehicle%20Type/Deluxe%205-Seater.png",
@@ -245,10 +245,9 @@ elif st.session_state.step == 2:
     }
     
     if selected_model in model_images:
-        # 使用 columns 稍微縮小圖片寬度，使其不會顯得過大
-        _, img_col, _ = st.columns([0.2, 0.6, 0.2])
-        with img_col:
-            st.image(model_images[selected_model], use_container_width=True)
+        # 直接使用 st.image 並設定 use_container_width=True
+        # 它會自動與當前佈局的最大寬度（即上方兩欄合併後的寬度）對齊
+        st.image(model_images[selected_model], use_container_width=True)
 
     st.divider()
 
@@ -256,7 +255,6 @@ elif st.session_state.step == 2:
     with col_o1:
         st.number_input(L['seat_label'], min_value=0, max_value=4, key='seat_count')
     with col_o2:
-        # 這裡修正了判斷邏輯，使用 key 本身的值
         if "Arrival" in st.session_state.s_type:
             st.markdown("<br>", unsafe_allow_html=True)
             st.checkbox(L['mg_pickup'], key='mg_selected', value=st.session_state.mg_selected_val)
@@ -315,7 +313,7 @@ elif st.session_state.step == 3:
 
         # --- 1. 客戶資訊 (隱藏於 Expander) ---
         # 這裡將名稱改為根據語系顯示 "客戶資訊" 或 "Customer Information"
-        info_label = "👤 客戶資訊 (Customer Info)" if st.session_state.lang == 'CH' else "👤 Customer Information"
+        info_label = "👤 客戶資訊" if st.session_state.lang == 'CH' else "👤 Customer Information"
         with st.expander(info_label):
             customer_data = [
                 (m["Name"], st.session_state.u_name_val),
